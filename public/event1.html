@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta charset="UTF-8">
+  <title>Bird AR Stamp</title>
+
+  <script src="./js/8frame-1.4.1.min.js"></script>
+  <script src="./js/xrextras.js"></script>
+  <script src="./js/landing-page.js"></script>
+  <script async src="./js/xr.js" data-preload-chunks="slam"></script>
+  <script type="module" src="./js/app.js"></script>
+  <script src="./js/qrcode.min.js"></script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Noto+Sans+KR:wght@300;400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" type="text/css" href="./index.css">
+</head>
+
+<body>
+
+<!-- Top bar showing stamp progress -->
+<div id="stamp-bar">
+  <div class="bar-stamp" data-bird="macaw">🦜</div>
+  <div class="bar-stamp" data-bird="puffin">🐦</div>
+  <div class="bar-stamp" data-bird="cardinal">🐦‍🔥</div>
+  <div class="bar-stamp" data-bird="blue-jay">🪶</div>
+  <span id="bar-count">0 / 4</span>
+</div>
+
+<!-- Bottom prompt -->
+<div id="prompt">새를 찾아보세요... 📷</div>
+
+<!-- Stamp Card Popup -->
+<div id="overlay">
+  <div id="stamp-card">
+    <div class="card-content">
+      <div class="card-header">
+        <button id="close-btn">✕</button>
+        <div class="card-title-ko">조류 탐험 스탬프</div>
+        <div class="card-title-en">Bird Explorer Stamp Card</div>
+        <div class="card-subtitle">4종의 새를 모두 찾아 도장을 완성하세요</div>
+      </div>
+
+      <div class="stamp-grid">
+        <div class="stamp-slot" data-bird="macaw">
+          <div class="stamp-empty-icon">🦜</div>
+          <div class="stamp-label">Macaw</div>
+          <div class="stamp-seal">
+            <div class="seal-circle">
+              <div class="seal-icon">🦜</div>
+              <div class="seal-name">MACAW</div>
+            </div>
+          </div>
+        </div>
+        <div class="stamp-slot" data-bird="puffin">
+          <div class="stamp-empty-icon">🐦</div>
+          <div class="stamp-label">Puffin</div>
+          <div class="stamp-seal">
+            <div class="seal-circle">
+              <div class="seal-icon">🐦</div>
+              <div class="seal-name">PUFFIN</div>
+            </div>
+          </div>
+        </div>
+        <div class="stamp-slot" data-bird="cardinal">
+          <div class="stamp-empty-icon">🐦‍🔥</div>
+          <div class="stamp-label">Cardinal</div>
+          <div class="stamp-seal">
+            <div class="seal-circle">
+              <div class="seal-icon">🐦‍🔥</div>
+              <div class="seal-name">CARDINAL</div>
+            </div>
+          </div>
+        </div>
+        <div class="stamp-slot" data-bird="blue-jay">
+          <div class="stamp-empty-icon">🪶</div>
+          <div class="stamp-label">Blue Jay</div>
+          <div class="stamp-seal">
+            <div class="seal-circle">
+              <div class="seal-icon">🪶</div>
+              <div class="seal-name">BLUE JAY</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card-footer">
+        <div class="stamp-count-text">
+          <span id="stamp-count-num">0</span> / 4 완료
+        </div>
+        <div class="card-footer-text">각 새를 카메라로 인식하면 도장이 찍힙니다</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Complete Screen -->
+<div id="complete-screen">
+  <div class="complete-inner">
+    <div class="complete-stamp-ring">
+      <div class="complete-emoji">🎉</div>
+    </div>
+    <div class="complete-title">탐험 완료!</div>
+    <div class="complete-sub">
+      4종의 새를 모두 발견했습니다<br>
+      아래 QR 코드를 스태프에게 보여주세요
+    </div>
+
+    <div id="qrcode-container" style="display:flex;justify-content:center;margin:20px 0;background:white;padding:15px;border-radius:12px;width:fit-content;margin-left:auto;margin-right:auto;">
+      <div id="qrcode"></div>
+    </div>
+
+    <div class="complete-code-box">
+      <div class="complete-code-label">사은품 수령 코드</div>
+      <div id="reward-code">BIRD-0000</div>
+    </div>
+    <div class="complete-instruction">
+      ⓘ 스태프가 코드를 확인 후 사은품을 드립니다<br>
+      코드는 1회만 사용 가능합니다
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<!-- AR Scene -->
+<a-scene
+  landing-page
+  xrextras-loading
+  xrextras-runtime-error
+  config-targets="targets: macaw, puffin, cardinal, blue-jay"
+  xrweb="disableWorldTracking: true">
+  <a-camera position="0 4 10" raycaster="objects: .cantap" cursor="fuse: false; rayOrigin: mouse;"></a-camera>
+
+  <a-entity smart-target="name: macaw"><a-text value="macaw" align="center"></a-text></a-entity>
+  <a-entity smart-target="name: cardinal"><a-text value="cardinal" align="center"></a-text></a-entity>
+  <a-entity smart-target="name: blue-jay"><a-text value="blue jay" align="center"></a-text></a-entity>
+  <a-entity smart-target="name: puffin"><a-text value="puffin" align="center"></a-text></a-entity>
+
+  <a-light type="directional" intensity="0.5" position="1 1 1"></a-light>
+  <a-light type="ambient" intensity="1"></a-light>
+</a-scene>
+
+<script>
+// ═══════════════════════════════════════════════
+//  설정 — 이 파일을 복사해 event2.html 등으로 사용 시
+//  EVENT_SLUG 만 변경하세요
+// ═══════════════════════════════════════════════
+const EVENT_SLUG   = 'event1';        // ← 행사 slug (서버에 등록된 값과 일치해야 함)
+const BIRDS        = ['macaw', 'puffin', 'cardinal', 'blue-jay'];
+const TOKEN_KEY    = `stamp_token_${EVENT_SLUG}`;
+const API_BASE     = '/api/events/' + EVENT_SLUG;
+
+// ═══════════════════════════════════════════════
+//  상태
+// ═══════════════════════════════════════════════
+let stampState   = {};   // {macaw: true, ...}
+let sessionToken = localStorage.getItem(TOKEN_KEY) || null;
+let isPopupOpen  = false;
+
+// ═══════════════════════════════════════════════
+//  DOM
+// ═══════════════════════════════════════════════
+const overlay        = document.getElementById('overlay');
+const completeScreen = document.getElementById('complete-screen');
+const toastEl        = document.getElementById('toast');
+const promptEl       = document.getElementById('prompt');
+const countNumEl     = document.getElementById('stamp-count-num');
+const rewardCodeEl   = document.getElementById('reward-code');
+const closeBtn       = document.getElementById('close-btn');
+
+// ═══════════════════════════════════════════════
+//  API 헬퍼
+// ═══════════════════════════════════════════════
+async function apiPost(path, body = {}) {
+  const r = await fetch(path, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  return r.json();
+}
+
+async function apiGet(path) {
+  const r = await fetch(path);
+  return r.json();
+}
+
+// ═══════════════════════════════════════════════
+//  세션 초기화 (페이지 로드 시)
+// ═══════════════════════════════════════════════
+async function initSession() {
+  try {
+    const data = await apiPost(`${API_BASE}/sessions`, { token: sessionToken });
+    if (data.error) throw new Error(data.error);
+
+    sessionToken = data.token;
+    localStorage.setItem(TOKEN_KEY, sessionToken);
+    stampState = data.stamps || {};
+
+    refreshUI();
+
+    // 이미 완료된 세션이면 완료 화면 복원
+    if (data.is_complete && data.reward_code) {
+      showComplete(data.reward_code);
+    }
+  } catch (err) {
+    console.warn('[initSession] 서버 연결 실패, 오프라인 모드:', err.message);
+    // 오프라인 폴백: localStorage 사용
+    try {
+      stampState = JSON.parse(localStorage.getItem(`offline_stamps_${EVENT_SLUG}`) || '{}');
+    } catch { stampState = {}; }
+    refreshUI();
+  }
+}
+
+// ═══════════════════════════════════════════════
+//  스탬프 찍기
+// ═══════════════════════════════════════════════
+async function stampBird(bird) {
+  // 낙관적 UI 업데이트 (서버 응답 전에 먼저 표시)
+  const wasAlreadyStamped = !!stampState[bird];
+
+  if (!wasAlreadyStamped) {
+    stampState[bird] = true;
+    // 오프라인 백업
+    localStorage.setItem(`offline_stamps_${EVENT_SLUG}`, JSON.stringify(stampState));
+
+    // 애니메이션
+    const slot = document.querySelector(`.stamp-slot[data-bird="${bird}"]`);
+    if (slot) {
+      slot.classList.remove('stamped');
+      void slot.offsetWidth;
+      slot.classList.add('stamped');
+    }
+
+    if (navigator.vibrate) navigator.vibrate([30, 20, 50]);
+    showToast(`🐦 ${bird.toUpperCase()} 도장 획득!`);
+  } else {
+    showToast(`이미 찍은 도장입니다: ${bird}`);
+  }
+
+  refreshUI();
+  openCard();
+
+  // 서버에 동기화 (백그라운드)
+  if (sessionToken && !wasAlreadyStamped) {
+    try {
+      const data = await apiPost(`${API_BASE}/sessions/${sessionToken}/stamps`, { bird });
+      if (!data.error) {
+        stampState = data.stamps;
+        refreshUI();
+        // 완료 코드를 서버에서 받음
+        if (data.is_complete && data.reward_code) {
+          localStorage.setItem(`reward_code_${EVENT_SLUG}`, data.reward_code);
+        }
+      }
+    } catch (err) {
+      console.warn('[stampBird] 서버 동기화 실패:', err.message);
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════
+//  UI 갱신
+// ═══════════════════════════════════════════════
+function stampedCount() {
+  return BIRDS.filter(b => stampState[b]).length;
+}
+
+function refreshUI() {
+  const count = stampedCount();
+
+  BIRDS.forEach(bird => {
+    const slot = document.querySelector(`.stamp-slot[data-bird="${bird}"]`);
+    const bar  = document.querySelector(`.bar-stamp[data-bird="${bird}"]`);
+    if (stampState[bird]) {
+      slot?.classList.add('stamped');
+      bar?.classList.add('done');
+    }
+  });
+
+  document.getElementById('bar-count').textContent = `${count} / 4`;
+  countNumEl.textContent = count;
+
+  if (count === 0)     promptEl.textContent = '새를 찾아보세요... 📷';
+  else if (count < 4)  promptEl.textContent = `${4 - count}마리 더 찾아보세요!`;
+  else                 promptEl.textContent = '모든 새를 찾았어요! 🎊';
+}
+
+function showToast(msg, dur = 2200) {
+  toastEl.textContent = msg;
+  toastEl.classList.add('show');
+  setTimeout(() => toastEl.classList.remove('show'), dur);
+}
+
+// ═══════════════════════════════════════════════
+//  팝업 열기 / 닫기
+// ═══════════════════════════════════════════════
+function openCard() {
+  if (isPopupOpen) return;
+  isPopupOpen = true;
+  overlay.classList.add('show');
+  setTimeout(closeCard, 1500);
+}
+
+function closeCard() {
+  overlay.classList.remove('show');
+  setTimeout(() => { isPopupOpen = false; }, 300);
+
+  if (stampedCount() === 4) {
+    setTimeout(async () => {
+      // 서버에서 reward_code 가져오기
+      let code = localStorage.getItem(`reward_code_${EVENT_SLUG}`);
+      if (!code && sessionToken) {
+        try {
+          const data = await apiGet(`${API_BASE}/sessions/${sessionToken}`);
+          if (data.reward_code) code = data.reward_code;
+        } catch {}
+      }
+      showComplete(code || 'BIRD-????');
+    }, 400);
+  }
+}
+
+closeBtn.addEventListener('click', closeCard);
+overlay.addEventListener('click', (e) => { if (e.target === overlay) closeCard(); });
+
+// ═══════════════════════════════════════════════
+//  완료 화면
+// ═══════════════════════════════════════════════
+function showComplete(code) {
+  rewardCodeEl.textContent = code;
+
+  const qrcodeContainer = document.getElementById('qrcode');
+  qrcodeContainer.innerHTML = '';
+  new QRCode(qrcodeContainer, {
+    text: code,
+    width: 160,
+    height: 160,
+    colorDark: '#000000',
+    colorLight: '#ffffff',
+    correctLevel: QRCode.CorrectLevel.H,
+  });
+
+  completeScreen.classList.add('show');
+}
+
+// ═══════════════════════════════════════════════
+//  AR 이벤트
+// ═══════════════════════════════════════════════
+const scene = document.querySelector('a-scene');
+
+scene.addEventListener('xrimagefound', ({ detail }) => {
+  if (BIRDS.includes(detail.name)) stampBird(detail.name);
+});
+
+scene.addEventListener('xrimageupdated', ({ detail }) => {
+  if (BIRDS.includes(detail.name) && stampState[detail.name] && !isPopupOpen) {
+    openCard();
+  }
+});
+
+// ═══════════════════════════════════════════════
+//  시작
+// ═══════════════════════════════════════════════
+initSession();
+
+// ═══════════════════════════════════════════════
+//  XR8 설정
+// ═══════════════════════════════════════════════
+const onxrloaded = async () => {
+  const [r1, r2, r3, r4] = await Promise.all([
+    fetch('./bluejay-target-ar.json').then(r => r.json()),
+    fetch('./macaw-target-ar.json').then(r => r.json()),
+    fetch('./puffin-target-ar.json').then(r => r.json()),
+    fetch('./cardinal-target-ar.json').then(r => r.json()),
+  ]);
+  XR8.XrController.configure({ imageTargetData: [r1, r2, r3, r4] });
+};
+window.XR8 ? onxrloaded() : window.addEventListener('xrloaded', onxrloaded);
+</script>
+
+</body>
+</html>

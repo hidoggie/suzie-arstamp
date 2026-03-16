@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>슈퍼관리자 — Stamp Tour</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./admin.css">
+<style>
+  .role-badge-super { background:#7c3aed; color:#fff; font-size:11px; padding:2px 8px; border-radius:10px; margin-left:8px; vertical-align:middle; }
+  .event-row { display:flex; align-items:center; justify-content:space-between; padding:14px 16px; background:var(--surface2); border-radius:10px; margin-bottom:8px; flex-wrap:wrap; gap:10px; }
+  .event-row-info .ev-name { font-weight:600; font-size:15px; }
+  .event-row-info .ev-slug { font-size:12px; color:var(--muted); margin-top:2px; }
+  .event-row-info .ev-slug a { color:var(--blue); text-decoration:none; }
+  .ev-badge-active   { background:#16a34a22; color:#16a34a; font-size:11px; padding:2px 8px; border-radius:8px; }
+  .ev-badge-inactive { background:#64748b22; color:#64748b; font-size:11px; padding:2px 8px; border-radius:8px; }
+  .ev-badge-nomgr    { background:#f59e0b22; color:#d97706; font-size:11px; padding:2px 8px; border-radius:8px; }
+  .event-row-actions { display:flex; gap:8px; flex-wrap:wrap; }
+  .stat-mini-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:10px; margin-bottom:24px; }
+  .stat-mini { background:var(--surface2); border-radius:10px; padding:14px 16px; }
+  .stat-mini-val { font-size:24px; font-weight:700; }
+  .stat-mini-lbl { font-size:12px; color:var(--muted); margin-top:3px; }
+  .modal-overlay { position:fixed;inset:0;background:rgba(0,0,0,0.7);display:none;align-items:center;justify-content:center;z-index:2000; }
+  .modal-overlay.active { display:flex; }
+  .modal-box { background:var(--surface);border-radius:12px;padding:28px;width:400px;max-width:95vw; }
+  .modal-title { font-size:17px;font-weight:600;margin-bottom:18px; }
+  .form-row { margin-bottom:13px; }
+  .form-row label { display:block;font-size:12px;color:var(--muted);margin-bottom:5px; }
+  .form-row input { width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--ink);padding:9px 12px;font-size:14px;outline:none;box-sizing:border-box; }
+  .modal-actions { display:flex;gap:10px;margin-top:18px;justify-content:flex-end; }
+  .pw-copy { font-family:monospace;background:var(--surface2);padding:8px 12px;border-radius:6px;font-size:14px;margin-top:8px;word-break:break-all; }
+</style>
+</head>
+<body>
+
+<!-- 로그인 -->
+<div id="login-gate">
+  <div class="login-box">
+    <div class="login-title">슈퍼관리자 로그인</div>
+    <div class="login-sub">🔐 전체 행사 관리 시스템</div>
+    <input type="password" id="pw-input" placeholder="슈퍼관리자 비밀번호" maxlength="30">
+    <button class="btn-primary" onclick="tryLogin()">로그인</button>
+    <div id="login-error"></div>
+  </div>
+</div>
+
+<!-- 메인 -->
+<div id="app">
+  <aside id="sidebar">
+    <div class="sidebar-logo">
+      <div>
+        <div class="logo-ko">🔐 슈퍼관리자<span class="role-badge-super">SUPER</span></div>
+        <div class="logo-en">Stamp Tour Admin</div>
+      </div>
+    </div>
+    <nav>
+      <div class="nav-item active" onclick="showSection('dashboard')"><span class="nav-icon">📊</span><span>전체 현황</span></div>
+      <div class="nav-item" onclick="showSection('events')"><span class="nav-icon">🎪</span><span>행사 관리</span></div>
+      <div class="nav-item" onclick="showSection('settings')"><span class="nav-icon">⚙️</span><span>설정</span></div>
+    </nav>
+    <div class="sidebar-footer">
+      <button onclick="logout()">로그아웃</button>
+    </div>
+  </aside>
+
+  <main id="main">
+
+    <!-- 전체 현황 -->
+    <section class="section active" id="sec-dashboard">
+      <div class="page-title">전체 행사 현황</div>
+      <div class="page-sub">모든 행사의 오늘/누적 통계를 한눈에 확인합니다</div>
+      <div id="all-stats-wrap">
+        <div style="color:var(--muted);font-size:13px;">로딩 중...</div>
+      </div>
+    </section>
+
+    <!-- 행사 관리 -->
+    <section class="section" id="sec-events">
+      <div class="page-title">행사 관리</div>
+      <div class="page-sub">행사 생성, 담당자 계정 관리를 합니다</div>
+
+      <div style="margin-bottom:16px;">
+        <button class="btn btn-blue" onclick="openNewEventModal()">+ 새 행사 만들기</button>
+      </div>
+
+      <div class="stock-panel">
+        <div class="panel-title"><span class="dot"></span>등록된 행사</div>
+        <div id="event-list"><div style="color:var(--muted);font-size:13px;">로딩 중...</div></div>
+      </div>
+    </section>
+
+    <!-- 설정 -->
+    <section class="section" id="sec-settings">
+      <div class="page-title">설정</div>
+      <div class="page-sub">슈퍼관리자 비밀번호를 변경합니다</div>
+      <div class="stock-panel">
+        <div class="panel-title"><span class="dot"></span>슈퍼관리자 비밀번호 변경</div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          <input type="password" id="new-pw" placeholder="새 비밀번호 (4자 이상)"
+            style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--ink);padding:10px 14px;font-size:14px;outline:none;width:200px;">
+          <button class="btn btn-blue" onclick="changePw()">변경</button>
+        </div>
+        <div id="pw-msg" style="font-size:12px;margin-top:8px;min-height:16px;"></div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- 새 행사 모달 -->
+<div id="new-event-modal" class="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-title">새 행사 만들기</div>
+    <div class="form-row">
+      <label>행사 Slug (URL용, 영문/숫자/하이픈) *</label>
+      <input type="text" id="ne-slug" placeholder="예: bird-festival-2025">
+    </div>
+    <div class="form-row">
+      <label>행사 이름 *</label>
+      <input type="text" id="ne-name" placeholder="예: 조류 탐험 AR 스탬프 투어">
+    </div>
+    <div class="form-row">
+      <label>인식 대상 (쉼표 구분)</label>
+      <input type="text" id="ne-targets" placeholder="macaw,puffin,cardinal,blue-jay">
+    </div>
+    <div class="form-row">
+      <label>담당자 비밀번호 (바로 설정할 경우 입력)</label>
+      <input type="password" id="ne-mgr-pw" placeholder="나중에 설정 가능">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-subtle" onclick="closeModal('new-event-modal')">취소</button>
+      <button class="btn btn-blue" onclick="createEvent()">생성</button>
+    </div>
+  </div>
+</div>
+
+<!-- 담당자 비밀번호 설정 모달 -->
+<div id="mgr-pw-modal" class="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-title" id="mgr-modal-title">담당자 비밀번호 설정</div>
+    <div class="form-row">
+      <label>새 비밀번호 *</label>
+      <input type="password" id="mgr-pw-input" placeholder="4자 이상">
+    </div>
+    <div id="mgr-pw-result" style="min-height:20px;font-size:13px;margin-top:4px;"></div>
+    <div class="modal-actions">
+      <button class="btn btn-subtle" onclick="closeModal('mgr-pw-modal')">닫기</button>
+      <button class="btn btn-blue" onclick="saveMgrPw()">저장</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const TOKEN_KEY = 'super_admin_token';
+let token = localStorage.getItem(TOKEN_KEY);
+let currentMgrSlug = null;
+
+async function api(method, path, body) {
+  const opts = { method, headers: { 'Content-Type': 'application/json' } };
+  if (token) opts.headers['Authorization'] = 'Bearer ' + token;
+  if (body)  opts.body = JSON.stringify(body);
+  const r = await fetch('/api/admin' + path, opts);
+  return r.json();
+}
+
+// ── 인증 ──────────────────────────────────
+async function tryLogin() {
+  const pw = document.getElementById('pw-input').value;
+  const data = await api('POST', '/login', { password: pw });
+  if (data.token) {
+    token = data.token;
+    localStorage.setItem(TOKEN_KEY, token);
+    document.getElementById('login-gate').classList.add('hidden');
+    init();
+  } else {
+    document.getElementById('login-error').textContent = data.error || '로그인 실패';
+    setTimeout(() => document.getElementById('login-error').textContent = '', 2000);
+  }
+}
+document.getElementById('pw-input').addEventListener('keydown', e => { if (e.key === 'Enter') tryLogin(); });
+
+function logout() {
+  token = null;
+  localStorage.removeItem(TOKEN_KEY);
+  document.getElementById('login-gate').classList.remove('hidden');
+  document.getElementById('pw-input').value = '';
+}
+
+// ── 네비게이션 ───────────────────────────
+function showSection(id) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('sec-' + id).classList.add('active');
+  const items = document.querySelectorAll('.nav-item');
+  const map = { dashboard: 0, events: 1, settings: 2 };
+  items[map[id]]?.classList.add('active');
+
+  if (id === 'dashboard') renderAllStats();
+  if (id === 'events')    renderEventList();
+}
+
+// ── 전체 통계 ────────────────────────────
+async function renderAllStats() {
+  const rows = await api('GET', '/super/stats');
+  const wrap = document.getElementById('all-stats-wrap');
+  if (!rows || rows.error || !rows.length) {
+    wrap.innerHTML = '<div style="color:var(--muted);font-size:13px;">등록된 행사가 없습니다</div>';
+    return;
+  }
+
+  const totalAll     = rows.reduce((s, r) => s + (+r.total || 0), 0);
+  const pendingAll   = rows.reduce((s, r) => s + (+r.pending || 0), 0);
+  const claimedAll   = rows.reduce((s, r) => s + (+r.claimed || 0), 0);
+  const todayAll     = rows.reduce((s, r) => s + (+r.today || 0), 0);
+  const stockAll     = rows.reduce((s, r) => s + (+r.stock_remaining || 0), 0);
+
+  wrap.innerHTML = `
+    <div class="stat-mini-grid">
+      <div class="stat-mini"><div class="stat-mini-val">${rows.length}</div><div class="stat-mini-lbl">총 행사 수</div></div>
+      <div class="stat-mini"><div class="stat-mini-val">${totalAll}</div><div class="stat-mini-lbl">누적 지급</div></div>
+      <div class="stat-mini"><div class="stat-mini-val">${pendingAll}</div><div class="stat-mini-lbl">수령 대기</div></div>
+      <div class="stat-mini"><div class="stat-mini-val">${claimedAll}</div><div class="stat-mini-lbl">수령 완료</div></div>
+      <div class="stat-mini"><div class="stat-mini-val">${todayAll}</div><div class="stat-mini-lbl">오늘 지급</div></div>
+      <div class="stat-mini"><div class="stat-mini-val">${stockAll}</div><div class="stat-mini-lbl">남은 총재고</div></div>
+    </div>
+
+    <div class="stock-panel">
+      <div class="panel-title"><span class="dot"></span>행사별 상세</div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>행사명</th><th>Slug</th><th>상태</th><th>오늘</th><th>누적</th><th>대기</th><th>완료</th><th>재고</th></tr></thead>
+          <tbody>
+            ${rows.map(r => `
+              <tr>
+                <td>${r.name}</td>
+                <td><span class="code-text">${r.slug}</span></td>
+                <td>${r.is_active ? '<span class="ev-badge-active">활성</span>' : '<span class="ev-badge-inactive">비활성</span>'}</td>
+                <td>${r.today||0}</td>
+                <td>${r.total||0}</td>
+                <td>${r.pending||0}</td>
+                <td>${r.claimed||0}</td>
+                <td>${r.stock_remaining||0}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+// ── 행사 목록 ────────────────────────────
+async function renderEventList() {
+  const events = await api('GET', '/events');
+  const el = document.getElementById('event-list');
+  if (!events || events.error || !events.length) {
+    el.innerHTML = '<div style="color:var(--muted);font-size:13px;">등록된 행사가 없습니다</div>';
+    return;
+  }
+
+  el.innerHTML = events.map(ev => {
+    const origin = location.origin;
+    const adminUrl = `${origin}/admin/${ev.slug}`;
+    const userUrl  = `${origin}/${ev.slug}/`;
+    const mgrBadge = ev.has_manager
+      ? '<span class="ev-badge-active">담당자 설정됨</span>'
+      : '<span class="ev-badge-nomgr">담당자 없음</span>';
+    return `
+      <div class="event-row">
+        <div class="event-row-info">
+          <div class="ev-name">${ev.name} ${ev.is_active ? '<span class="ev-badge-active">활성</span>' : '<span class="ev-badge-inactive">비활성</span>'}</div>
+          <div class="ev-slug">
+            <b>담당자 URL:</b> <a href="${adminUrl}" target="_blank">${adminUrl}</a>
+            &nbsp;|&nbsp; ${mgrBadge}
+          </div>
+        </div>
+        <div class="event-row-actions">
+          <button class="btn btn-blue btn-xs" onclick="openMgrPwModal('${ev.slug}', '${ev.name}')">
+            ${ev.has_manager ? '비밀번호 재설정' : '담당자 등록'}
+          </button>
+          <button class="btn btn-subtle btn-xs" onclick="toggleActive('${ev.slug}', ${!ev.is_active})">
+            ${ev.is_active ? '비활성화' : '활성화'}
+          </button>
+          ${ev.has_manager ? `<button class="btn btn-red btn-xs" onclick="deleteMgr('${ev.slug}')">담당자 삭제</button>` : ''}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+// ── 행사 생성 ────────────────────────────
+function openNewEventModal() { document.getElementById('new-event-modal').classList.add('active'); }
+function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+
+async function createEvent() {
+  const slug    = document.getElementById('ne-slug').value.trim();
+  const name    = document.getElementById('ne-name').value.trim();
+  const targRaw = document.getElementById('ne-targets').value.trim();
+  const mgrPw   = document.getElementById('ne-mgr-pw').value.trim();
+  if (!slug || !name) return alert('Slug와 행사 이름은 필수입니다');
+
+  const targets = targRaw
+    ? targRaw.split(',').map(s => s.trim()).filter(Boolean)
+    : ['macaw','puffin','cardinal','blue-jay'];
+
+  const data = await api('POST', '/events', {
+    slug, name, targets, manager_password: mgrPw || undefined
+  });
+  if (data.error) return alert('오류: ' + data.error);
+
+  closeModal('new-event-modal');
+  document.getElementById('ne-slug').value = '';
+  document.getElementById('ne-name').value = '';
+  document.getElementById('ne-targets').value = '';
+  document.getElementById('ne-mgr-pw').value = '';
+  renderEventList();
+  alert(`행사 "${name}" 생성 완료!\n\n담당자 URL: ${location.origin}/admin/${slug}`);
+}
+
+async function toggleActive(slug, isActive) {
+  await api('PATCH', `/events/${slug}`, { is_active: isActive });
+  renderEventList();
+}
+
+// ── 담당자 계정 ──────────────────────────
+function openMgrPwModal(slug, name) {
+  currentMgrSlug = slug;
+  document.getElementById('mgr-modal-title').textContent = `담당자 비밀번호 설정 — ${name}`;
+  document.getElementById('mgr-pw-input').value = '';
+  document.getElementById('mgr-pw-result').textContent = '';
+  document.getElementById('mgr-pw-modal').classList.add('active');
+}
+
+async function saveMgrPw() {
+  const pw = document.getElementById('mgr-pw-input').value.trim();
+  const el = document.getElementById('mgr-pw-result');
+  if (pw.length < 4) { el.style.color='#e74c3c'; el.textContent='4자 이상 입력하세요'; return; }
+
+  const data = await api('POST', `/events/${currentMgrSlug}/manager`, { password: pw });
+  if (data.error) { el.style.color='#e74c3c'; el.textContent=data.error; return; }
+
+  el.style.color = '#16a34a';
+  el.textContent = '✅ 설정 완료';
+  setTimeout(() => {
+    closeModal('mgr-pw-modal');
+    renderEventList();
+  }, 1000);
+}
+
+async function deleteMgr(slug) {
+  if (!confirm(`${slug} 행사의 담당자 계정을 삭제하시겠습니까?\n해당 담당자는 더 이상 로그인할 수 없습니다.`)) return;
+  const data = await api('DELETE', `/events/${slug}/manager`);
+  if (data.error) return alert('오류: ' + data.error);
+  renderEventList();
+}
+
+// ── 설정 ─────────────────────────────────
+async function changePw() {
+  const val = document.getElementById('new-pw').value.trim();
+  const msg = document.getElementById('pw-msg');
+  if (val.length < 4) { msg.style.color='#e74c3c'; msg.textContent='4자 이상 입력하세요'; return; }
+  const data = await api('POST', '/super/password', { new_password: val });
+  if (data.error) { msg.style.color='#e74c3c'; msg.textContent=data.error; return; }
+  msg.style.color='#16a34a'; msg.textContent='변경되었습니다';
+  setTimeout(() => msg.textContent='', 2000);
+}
+
+// ── 초기화 ───────────────────────────────
+async function init() {
+  const me = await api('GET', '/me');
+  if (me.role !== 'super') { logout(); return; }
+  renderAllStats();
+}
+
+if (token) {
+  document.getElementById('login-gate').classList.add('hidden');
+  init();
+}
+
+setInterval(() => {
+  if (document.getElementById('sec-dashboard').classList.contains('active')) renderAllStats();
+}, 20000);
+</script>
+</body>
+</html>

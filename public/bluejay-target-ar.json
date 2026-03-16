@@ -1,0 +1,18 @@
+{
+  "imagePath": "assets/blue-jay.jpg",
+  "name": "blue-jay",
+  "type": "PLANAR",
+  "properties": {
+    "top": 0,
+    "left": 0,
+    "width": 614,
+    "height": 819,
+    "isRotated": false,
+    "originalWidth": 614,
+    "originalHeight": 819
+  },
+  "userMetadataIsJson": true,
+  "loadAutomatically": true,
+  "created": 1646873156802,
+  "updated": 1646873156802
+}
